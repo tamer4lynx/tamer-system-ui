@@ -3,7 +3,8 @@
     "android": {
       "packageName": "com.nanofuxion.tamersystemui",
       "moduleClassName": "com.nanofuxion.tamersystemui.SystemUIModule",
-      "sourceDir": "android"
+      "sourceDir": "android",
+      "attachHostView": true
     }
   }
 }

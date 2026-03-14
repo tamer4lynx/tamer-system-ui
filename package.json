@@ -18,6 +18,7 @@
     "build": "tsc"
   },
   "peerDependencies": {
+    "@lynx-js/react": ">=0.100.0",
     "react": "^17.0.0"
   },
   "devDependencies": {
