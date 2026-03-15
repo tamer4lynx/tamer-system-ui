@@ -29,6 +29,7 @@ declare const NativeModules: {
   SystemUIModule?: {
     setStatusBar(style: string): void
     setNavigationBar(color: string, style: string): void
+    setRootBackground?(color: string): void
     getThemeColors?(callback: (colors: ThemeColors) => void): void
   }
 } | undefined
@@ -69,7 +70,9 @@ function setNavigationBar(options: NavigationBarOptions): void {
   mod()?.setNavigationBar(options.color, resolveStyle(options.color, options.style))
 }
 
-function setRootBackground(_options: { color: string }): void {}
+function setRootBackground(options: { color: string }): void {
+  mod()?.setRootBackground?.(options.color)
+}
 
 export function getThemeColors(callback: (colors: ThemeColors) => void): void {
   mod()?.getThemeColors?.(callback)

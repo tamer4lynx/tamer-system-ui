@@ -12,7 +12,7 @@
       "default": "./dist/src/index.js"
     }
   },
-  "files": ["dist", "android", "lynx.ext.json"],
+  "files": ["dist", "android", "ios", "lynx.ext.json"],
   "lynx": { "ext": "lynx.ext.json" },
   "scripts": {
     "build": "tsc"

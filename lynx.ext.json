@@ -5,6 +5,10 @@
       "moduleClassName": "com.nanofuxion.tamersystemui.SystemUIModule",
       "sourceDir": "android",
       "attachHostView": true
+    },
+    "ios": {
+      "podspecPath": "ios/tamersystemui",
+      "moduleClassName": "SystemUIModule"
     }
   }
 }
