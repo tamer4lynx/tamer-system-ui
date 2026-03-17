@@ -1,6 +1,7 @@
 {
-  "name": "tamer-system-ui",
-  "version": "0.1.0",
+  "name": "@tamer4lynx/tamer-system-ui",
+  "version": "0.0.1",
+  "publishConfig": { "access": "public", "tag": "prerelease" },
   "type": "module",
   "description": "Status bar and navigation bar control for Lynx.",
   "main": "dist/src/index.js",
@@ -12,7 +13,7 @@
       "default": "./dist/src/index.js"
     }
   },
-  "files": ["dist", "android", "ios", "lynx.ext.json"],
+  "files": ["dist", "android/src", "android/build.gradle.kts", "ios", "lynx.ext.json"],
   "lynx": { "ext": "lynx.ext.json" },
   "scripts": {
     "build": "tsc"
@@ -29,6 +30,9 @@
   "engines": {
     "node": ">=18"
   },
+  "repository": { "type": "git", "url": "https://github.com/tamer4lynx/tamer-system-ui.git" },
+  "homepage": "https://github.com/tamer4lynx/tamer-system-ui#readme",
+  "bugs": { "url": "https://github.com/tamer4lynx/tamer-system-ui/issues" },
   "author": "Nanofuxion",
   "license": "MIT"
 }

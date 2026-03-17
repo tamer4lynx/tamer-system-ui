@@ -5,7 +5,7 @@ Status bar and navigation bar control for Lynx.
 ## Installation
 
 ```bash
-npm install tamer-system-ui
+npm install @tamer4lynx/tamer-system-ui
 ```
 
 Add to your app's dependencies and run `t4l link`.
@@ -13,7 +13,7 @@ Add to your app's dependencies and run `t4l link`.
 ## Usage
 
 ```tsx
-import { useSystemUI, useThemeColors } from 'tamer-system-ui'
+import { useSystemUI, useThemeColors } from '@tamer4lynx/tamer-system-ui'
 
 function App() {
   const { setStatusBar, setNavigationBar, setRootBackground, getThemeColorsAsync } = useSystemUI()
