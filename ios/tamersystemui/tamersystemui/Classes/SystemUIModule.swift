@@ -28,7 +28,11 @@ public final class SystemUIModule: NSObject, LynxModule {
     private weak var lynxContext: LynxContext?
     private weak var observerView: ThemeObserverView?
     private var cachedTheme: [String: Any]?
-    private var statusBarStyle: UIStatusBarStyle = .lightContent
+    private var statusBarStyle: UIStatusBarStyle = .default
+
+    public static var statusBarStyleForHost: UIStatusBarStyle {
+        shared?.statusBarStyle ?? .default
+    }
 
     public required init(param: Any) {
         super.init()
