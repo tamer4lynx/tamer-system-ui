@@ -30,6 +30,10 @@ public final class SystemUIModule: NSObject, LynxModule {
     private var cachedTheme: [String: Any]?
     private var statusBarStyle: UIStatusBarStyle = .default
 
+    @objc public var statusBarStyleRawForHost: Int {
+        statusBarStyle.rawValue
+    }
+
     public static var statusBarStyleForHost: UIStatusBarStyle {
         shared?.statusBarStyle ?? .default
     }

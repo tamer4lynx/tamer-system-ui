@@ -25,15 +25,6 @@ export interface ThemeColors {
   isDark?: boolean
 }
 
-declare const NativeModules: {
-  SystemUIModule?: {
-    setStatusBar(style: string): void
-    setNavigationBar(color: string, style: string): void
-    setRootBackground?(color: string): void
-    getThemeColors?(callback: (colors: ThemeColors) => void): void
-  }
-} | undefined
-
 function mod() {
   return (typeof NativeModules !== 'undefined' ? NativeModules : undefined)?.SystemUIModule
 }
