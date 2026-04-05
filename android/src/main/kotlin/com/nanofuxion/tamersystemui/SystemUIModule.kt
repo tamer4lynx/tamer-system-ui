@@ -12,8 +12,10 @@ import android.os.Looper
 import android.util.TypedValue
 import android.view.View
 import androidx.annotation.RequiresApi
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -28,11 +30,18 @@ class SystemUIModule(context: Context) : LynxModule(context) {
     private data class ThemeColors(
         val primary: String,
         val primaryDark: String,
+        val onPrimaryContainer: String,
         val background: String,
         val surface: String,
         val surfaceContainer: String,
+        val surfaceContainerLow: String,
+        val surfaceContainerHigh: String,
+        val surfaceContainerHighest: String,
         val onSurface: String,
-        val isDark: Boolean
+        val isDark: Boolean,
+        val onSurfaceVariant: String,
+        val secondaryContainer: String,
+        val onSecondaryContainer: String,
     )
 
     companion object {
@@ -133,6 +142,11 @@ class SystemUIModule(context: Context) : LynxModule(context) {
         emitThemeChanged(next)
     }
 
+    private fun composeColorToHex(c: androidx.compose.ui.graphics.Color): String {
+        val argb = c.toArgb()
+        return String.format("#%02x%02x%02x", Color.red(argb), Color.green(argb), Color.blue(argb))
+    }
+
     private fun buildThemeColors(ctx: Context): ThemeColors {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             getSystemDynamicColors(ctx)
@@ -145,25 +159,32 @@ class SystemUIModule(context: Context) : LynxModule(context) {
     private fun getSystemDynamicColors(ctx: Context): ThemeColors {
         val isDark = (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         val scheme = if (isDark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
-        fun colorToHexCompose(c: androidx.compose.ui.graphics.Color): String {
-            val argb = c.toArgb()
-            return String.format("#%02x%02x%02x", Color.red(argb), Color.green(argb), Color.blue(argb))
-        }
         return ThemeColors(
-            primary = colorToHexCompose(scheme.primary),
-            primaryDark = colorToHexCompose(scheme.primaryContainer),
-            surface = colorToHexCompose(scheme.surface),
-            surfaceContainer = colorToHexCompose(scheme.surfaceContainer),
-            background = colorToHexCompose(scheme.background),
-            onSurface = colorToHexCompose(scheme.onSurface),
-            isDark = isDark
+            primary = composeColorToHex(scheme.primary),
+            primaryDark = composeColorToHex(scheme.primaryContainer),
+            onPrimaryContainer = composeColorToHex(scheme.onPrimaryContainer),
+            surface = composeColorToHex(scheme.surface),
+            surfaceContainer = composeColorToHex(scheme.surfaceContainer),
+            surfaceContainerLow = composeColorToHex(scheme.surfaceContainerLow),
+            surfaceContainerHigh = composeColorToHex(scheme.surfaceContainerHigh),
+            surfaceContainerHighest = composeColorToHex(scheme.surfaceContainerHighest),
+            background = composeColorToHex(scheme.background),
+            onSurface = composeColorToHex(scheme.onSurface),
+            isDark = isDark,
+            onSurfaceVariant = composeColorToHex(scheme.onSurfaceVariant),
+            secondaryContainer = composeColorToHex(scheme.secondaryContainer),
+            onSecondaryContainer = composeColorToHex(scheme.onSecondaryContainer),
         )
     }
 
     private fun getThemeAttributeColors(ctx: Context): ThemeColors {
         val isDark = (ctx.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        val activity = ctx as? Activity ?: return ThemeColors("#000000", "#000000", "#ffffff", "#ffffff", "#333333", "#000000", isDark)
-        val theme = activity.theme ?: return ThemeColors("#000000", "#000000", "#ffffff", "#ffffff", "#333333", "#000000", isDark)
+        val scheme = if (isDark) darkColorScheme() else lightColorScheme()
+        val activity = ctx as? Activity
+        if (activity == null) {
+            return themeFromStaticScheme(scheme, isDark)
+        }
+        val theme = activity.theme ?: return themeFromStaticScheme(scheme, isDark)
         val out = TypedValue()
         fun resolve(attr: Int, fallback: Int): Int {
             return if (theme.resolveAttribute(attr, out, true)) out.data else fallback
@@ -171,11 +192,40 @@ class SystemUIModule(context: Context) : LynxModule(context) {
         return ThemeColors(
             primary = colorToHex(resolve(android.R.attr.colorPrimary, Color.BLACK)),
             primaryDark = colorToHex(resolve(android.R.attr.colorPrimaryDark, Color.DKGRAY)),
+            onPrimaryContainer = composeColorToHex(scheme.onPrimaryContainer),
             background = colorToHex(resolve(android.R.attr.colorBackground, Color.WHITE)),
-            surface = colorToHex(resolve(android.R.attr.windowBackground, Color.WHITE)),
-            surfaceContainer = colorToHex(resolve(android.R.attr.colorPrimaryDark, Color.DKGRAY)),
+            surface = composeColorToHex(scheme.surface),
+            surfaceContainer = composeColorToHex(scheme.surfaceContainer),
+            surfaceContainerLow = composeColorToHex(scheme.surfaceContainerLow),
+            surfaceContainerHigh = composeColorToHex(scheme.surfaceContainerHigh),
+            surfaceContainerHighest = composeColorToHex(scheme.surfaceContainerHighest),
             onSurface = colorToHex(resolve(android.R.attr.colorForeground, Color.WHITE)),
-            isDark = isDark
+            isDark = isDark,
+            onSurfaceVariant = composeColorToHex(scheme.onSurfaceVariant),
+            secondaryContainer = composeColorToHex(scheme.secondaryContainer),
+            onSecondaryContainer = composeColorToHex(scheme.onSecondaryContainer),
+        )
+    }
+
+    private fun themeFromStaticScheme(
+        scheme: androidx.compose.material3.ColorScheme,
+        isDark: Boolean
+    ): ThemeColors {
+        return ThemeColors(
+            primary = composeColorToHex(scheme.primary),
+            primaryDark = composeColorToHex(scheme.primaryContainer),
+            onPrimaryContainer = composeColorToHex(scheme.onPrimaryContainer),
+            background = composeColorToHex(scheme.background),
+            surface = composeColorToHex(scheme.surface),
+            surfaceContainer = composeColorToHex(scheme.surfaceContainer),
+            surfaceContainerLow = composeColorToHex(scheme.surfaceContainerLow),
+            surfaceContainerHigh = composeColorToHex(scheme.surfaceContainerHigh),
+            surfaceContainerHighest = composeColorToHex(scheme.surfaceContainerHighest),
+            onSurface = composeColorToHex(scheme.onSurface),
+            isDark = isDark,
+            onSurfaceVariant = composeColorToHex(scheme.onSurfaceVariant),
+            secondaryContainer = composeColorToHex(scheme.secondaryContainer),
+            onSecondaryContainer = composeColorToHex(scheme.onSecondaryContainer),
         )
     }
 
@@ -183,10 +233,17 @@ class SystemUIModule(context: Context) : LynxModule(context) {
         return JavaOnlyMap().apply {
             putString("primary", primary)
             putString("primaryDark", primaryDark)
+            putString("onPrimaryContainer", onPrimaryContainer)
             putString("background", background)
             putString("surface", surface)
             putString("surfaceContainer", surfaceContainer)
+            putString("surfaceContainerLow", surfaceContainerLow)
+            putString("surfaceContainerHigh", surfaceContainerHigh)
+            putString("surfaceContainerHighest", surfaceContainerHighest)
             putString("onSurface", onSurface)
+            putString("onSurfaceVariant", onSurfaceVariant)
+            putString("secondaryContainer", secondaryContainer)
+            putString("onSecondaryContainer", onSecondaryContainer)
             putBoolean("isDark", isDark)
         }
     }
@@ -201,10 +258,17 @@ class SystemUIModule(context: Context) : LynxModule(context) {
                 val payload = JSONObject().apply {
                     put("primary", theme.primary)
                     put("primaryDark", theme.primaryDark)
+                    put("onPrimaryContainer", theme.onPrimaryContainer)
                     put("background", theme.background)
                     put("surface", theme.surface)
                     put("surfaceContainer", theme.surfaceContainer)
+                    put("surfaceContainerLow", theme.surfaceContainerLow)
+                    put("surfaceContainerHigh", theme.surfaceContainerHigh)
+                    put("surfaceContainerHighest", theme.surfaceContainerHighest)
                     put("onSurface", theme.onSurface)
+                    put("onSurfaceVariant", theme.onSurfaceVariant)
+                    put("secondaryContainer", theme.secondaryContainer)
+                    put("onSecondaryContainer", theme.onSecondaryContainer)
                     put("isDark", theme.isDark)
                 }.toString()
                 val params = JavaOnlyArray().apply {

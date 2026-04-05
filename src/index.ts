@@ -16,14 +16,49 @@ export interface NavigationBarOptions {
 }
 
 export interface ThemeColors {
+  /**
+   * Primary / brand tone from the host or app. App-shell uses this for the default tab active
+   * pill fill and FAB container when it contrasts the tab strip background.
+   */
   primary?: string
+  /** Material 3 primary container (Android dynamic maps this from `primaryDark`). */
   primaryDark?: string
+  /** M3 primary-container — FAB and tonal button container. */
+  primaryContainer?: string
+  /** M3 on-primary-container — icon/label on primary-container. */
+  onPrimaryContainer?: string
+  onPrimary?: string
   background?: string
   surface?: string
   surfaceContainer?: string
+  /** M3 surface-container-low — elevated button, drawer surface. */
+  surfaceContainerLow?: string
+  /** M3 surface-container-high — FAB menu item surface. */
+  surfaceContainerHigh?: string
+  /** M3 surface-container-highest — progress track. */
+  surfaceContainerHighest?: string
   onSurface?: string
+  /** M3 on-surface-variant — inactive nav icons/labels on the bar. */
+  onSurfaceVariant?: string
+  /** M3 secondary container — bottom nav active pill fill (e.g. Google Phone). */
+  secondaryContainer?: string
+  /** M3 on-secondary-container — icon on that pill. */
+  onSecondaryContainer?: string
+  /** M3 outline — button borders, dividers. */
+  outline?: string
+  /** M3 outline-variant — subtle dividers. */
+  outlineVariant?: string
+  /** M3 error — error state color. */
+  error?: string
+  onError?: string
   isDark?: boolean
 }
+
+/**
+ * Light-theme primary when native `ThemeColors.primary` is missing. Matches the dev launcher
+ * Connect button background (`LIGHT_FALLBACK` in `@tamer4lynx/tamer-dev-client`).
+ */
+export const FALLBACK_PRIMARY_LIGHT = '#007aff'
 
 function mod() {
   return (typeof NativeModules !== 'undefined' ? NativeModules : undefined)?.SystemUIModule
@@ -95,10 +130,17 @@ function sameTheme(a: ThemeColors | null, b: ThemeColors | null): boolean {
   if (a == null || b == null) return false
   return a.primary === b.primary &&
     a.primaryDark === b.primaryDark &&
+    a.onPrimaryContainer === b.onPrimaryContainer &&
     a.background === b.background &&
     a.surface === b.surface &&
     a.surfaceContainer === b.surfaceContainer &&
+    a.surfaceContainerLow === b.surfaceContainerLow &&
+    a.surfaceContainerHigh === b.surfaceContainerHigh &&
+    a.surfaceContainerHighest === b.surfaceContainerHighest &&
     a.onSurface === b.onSurface &&
+    a.onSurfaceVariant === b.onSurfaceVariant &&
+    a.secondaryContainer === b.secondaryContainer &&
+    a.onSecondaryContainer === b.onSecondaryContainer &&
     a.isDark === b.isDark
 }
 

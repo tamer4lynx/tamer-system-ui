@@ -150,15 +150,57 @@ public final class SystemUIModule: NSObject, LynxModule {
         let onSurface = UIColor.label.resolvedColor(with: trait)
         let primary = (keyWindow()?.tintColor ?? UIColor.systemBlue).resolvedColor(with: trait)
         let primaryDark = UIColor.systemIndigo.resolvedColor(with: trait)
+        let onSurfaceVariant = UIColor.secondaryLabel.resolvedColor(with: trait)
+        let secondaryContainer = blend(primary, surface, 0.18, trait: trait)
+        let onSecondaryContainer = primary
+        let surfaceContainerLow = blend(background, surface, 0.35, trait: trait)
+        let surfaceContainerHigh = blend(surface, surfaceContainer, 0.5, trait: trait)
+        let surfaceContainerHighest = blend(surface, surfaceContainer, 0.72, trait: trait)
         return [
             "primary": hex(primary),
             "primaryDark": hex(primaryDark),
+            "onPrimaryContainer": isDark ? "#eaddff" : "#21005d",
             "background": hex(background),
             "surface": hex(surface),
             "surfaceContainer": hex(surfaceContainer),
+            "surfaceContainerLow": hex(surfaceContainerLow),
+            "surfaceContainerHigh": hex(surfaceContainerHigh),
+            "surfaceContainerHighest": hex(surfaceContainerHighest),
             "onSurface": hex(onSurface),
+            "onSurfaceVariant": hex(onSurfaceVariant),
+            "secondaryContainer": hex(secondaryContainer),
+            "onSecondaryContainer": hex(onSecondaryContainer),
             "isDark": isDark,
         ]
+    }
+
+    private func blend(_ a: UIColor, _ b: UIColor, _ t: CGFloat, trait: UITraitCollection) -> UIColor {
+        let a1 = a.resolvedColor(with: trait)
+        let b1 = b.resolvedColor(with: trait)
+        var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+        var okA = a1.getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+        if !okA {
+            var w: CGFloat = 0
+            a1.getWhite(&w, alpha: &aa)
+            ar = w
+            ag = w
+            ab = w
+        }
+        var okB = b1.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        if !okB {
+            var w: CGFloat = 0
+            b1.getWhite(&w, alpha: &ba)
+            br = w
+            bg = w
+            bb = w
+        }
+        return UIColor(
+            red: ar * (1 - t) + br * t,
+            green: ag * (1 - t) + bg * t,
+            blue: ab * (1 - t) + bb * t,
+            alpha: 1
+        )
     }
 
     private func sendThemeChanged(_ theme: [String: Any]) {

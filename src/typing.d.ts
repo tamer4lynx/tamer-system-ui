@@ -10,6 +10,9 @@ declare var NativeModules: {
       surface?: string
       surfaceContainer?: string
       onSurface?: string
+      onSurfaceVariant?: string
+      secondaryContainer?: string
+      onSecondaryContainer?: string
       isDark?: boolean
     }) => void): void
   }
