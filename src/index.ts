@@ -154,7 +154,15 @@ export function useThemeColors(): ThemeColors | null {
     }
     const refetch = () => {
       getThemeColorsAsync().then((c) => {
-        if (c && (c.surface != null || c.surfaceContainer != null || c.onSurface != null)) apply(c)
+        if (
+          c &&
+          (c.background != null ||
+            c.surface != null ||
+            c.surfaceContainer != null ||
+            c.onSurface != null)
+        ) {
+          apply(c)
+        }
       }).catch(() => {})
     }
     refetch()
@@ -163,7 +171,13 @@ export function useThemeColors(): ThemeColors | null {
       const event = args[0] as { payload?: string } | undefined
       try {
         const payload = JSON.parse(event?.payload ?? '{}') as ThemeColors
-        if (payload && (payload.surface != null || payload.surfaceContainer != null || payload.onSurface != null)) {
+        if (
+          payload &&
+          (payload.background != null ||
+            payload.surface != null ||
+            payload.surfaceContainer != null ||
+            payload.onSurface != null)
+        ) {
           apply(payload)
           return
         }
