@@ -78,8 +78,13 @@ public final class SystemUIModule: NSObject, LynxModule {
     }
 
     @objc func getThemeColors(_ callback: @escaping (Any) -> Void) {
-        DispatchQueue.main.async {
-            callback(self.buildThemeColors())
+        let colors = buildThemeColors()
+        if Thread.isMainThread {
+            callback(colors)
+        } else {
+            DispatchQueue.main.async {
+                callback(self.buildThemeColors())
+            }
         }
     }
 

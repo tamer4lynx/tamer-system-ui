@@ -64,6 +64,113 @@ function mod() {
   return (typeof NativeModules !== 'undefined' ? NativeModules : undefined)?.SystemUIModule
 }
 
+function getLynxGlobalProps(): Record<string, unknown> | null {
+  try {
+    const lynx = (globalThis as unknown as { lynx?: { __globalProps?: unknown } }).lynx
+    const gp = lynx?.__globalProps
+    if (gp != null && typeof gp === 'object' && !Array.isArray(gp)) {
+      return gp as Record<string, unknown>
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+function pickStr(o: Record<string, unknown>, key: string): string | undefined {
+  const v = o[key]
+  return typeof v === 'string' && v.length > 0 ? v : undefined
+}
+
+function pickBool(o: Record<string, unknown>, key: string): boolean | undefined {
+  const v = o[key]
+  if (typeof v === 'boolean') return v
+  if (v === 1) return true
+  if (v === 0) return false
+  return undefined
+}
+
+export function hasThemePayload(c: ThemeColors | null | undefined): boolean {
+  if (c == null) return false
+  return (
+    c.background != null ||
+    c.surface != null ||
+    c.surfaceContainer != null ||
+    c.onSurface != null
+  )
+}
+
+/**
+ * Coerce a host / `__globalProps` / native callback value into `ThemeColors`.
+ */
+export function normalizeThemeColors(raw: unknown): ThemeColors | null {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const o = raw as Record<string, unknown>
+  const t: ThemeColors = {
+    primary: pickStr(o, 'primary'),
+    primaryDark: pickStr(o, 'primaryDark'),
+    primaryContainer: pickStr(o, 'primaryContainer'),
+    onPrimaryContainer: pickStr(o, 'onPrimaryContainer'),
+    onPrimary: pickStr(o, 'onPrimary'),
+    background: pickStr(o, 'background'),
+    surface: pickStr(o, 'surface'),
+    surfaceContainer: pickStr(o, 'surfaceContainer'),
+    surfaceContainerLow: pickStr(o, 'surfaceContainerLow'),
+    surfaceContainerHigh: pickStr(o, 'surfaceContainerHigh'),
+    surfaceContainerHighest: pickStr(o, 'surfaceContainerHighest'),
+    onSurface: pickStr(o, 'onSurface'),
+    onSurfaceVariant: pickStr(o, 'onSurfaceVariant'),
+    secondaryContainer: pickStr(o, 'secondaryContainer'),
+    onSecondaryContainer: pickStr(o, 'onSecondaryContainer'),
+    outline: pickStr(o, 'outline'),
+    outlineVariant: pickStr(o, 'outlineVariant'),
+    error: pickStr(o, 'error'),
+    onError: pickStr(o, 'onError'),
+    isDark: pickBool(o, 'isDark'),
+  }
+  return hasThemePayload(t) ? t : null
+}
+
+/**
+ * Reads `themeColors` / `tamerThemeColors` from `lynx.__globalProps` (JSON string or object).
+ * Hosts can inject the same payload native uses so the first frame matches system UI.
+ */
+export function readBootstrapThemeColors(): ThemeColors | null {
+  const gp = getLynxGlobalProps()
+  if (!gp) return null
+  const raw = gp.themeColors ?? gp.tamerThemeColors ?? gp.systemUiTheme
+  if (raw == null) return null
+  if (typeof raw === 'string') {
+    try {
+      return normalizeThemeColors(JSON.parse(raw) as unknown)
+    } catch {
+      return null
+    }
+  }
+  return normalizeThemeColors(raw)
+}
+
+/**
+ * Theme for the first React paint: `__globalProps` first, then a **synchronous**
+ * `SystemUIModule.getThemeColors` callback (native must invoke on the main thread immediately).
+ */
+export function readInitialThemeColors(): ThemeColors | null {
+  const boot = readBootstrapThemeColors()
+  if (boot && hasThemePayload(boot)) return boot
+  let native: ThemeColors | null = null
+  try {
+    const m = mod()
+    if (m?.getThemeColors) {
+      m.getThemeColors((c: ThemeColors) => {
+        native = normalizeThemeColors(c)
+      })
+    }
+  } catch {
+    // ignore
+  }
+  return native && hasThemePayload(native) ? native : null
+}
+
 /**
  * Returns 'light' (white icons) for dark backgrounds, 'dark' (dark icons) for light backgrounds.
  * Uses WCAG relative luminance with the 0.179 threshold.
@@ -145,7 +252,7 @@ function sameTheme(a: ThemeColors | null, b: ThemeColors | null): boolean {
 }
 
 export function useThemeColors(): ThemeColors | null {
-  const [colors, setColors] = useState<ThemeColors | null>(null)
+  const [colors, setColors] = useState<ThemeColors | null>(() => readInitialThemeColors())
   useEffect(() => {
     let mounted = true
     const apply = (next: ThemeColors | null) => {
@@ -154,15 +261,8 @@ export function useThemeColors(): ThemeColors | null {
     }
     const refetch = () => {
       getThemeColorsAsync().then((c) => {
-        if (
-          c &&
-          (c.background != null ||
-            c.surface != null ||
-            c.surfaceContainer != null ||
-            c.onSurface != null)
-        ) {
-          apply(c)
-        }
+        const n = normalizeThemeColors(c ?? {})
+        if (n && hasThemePayload(n)) apply(n)
       }).catch(() => {})
     }
     refetch()
@@ -170,14 +270,8 @@ export function useThemeColors(): ThemeColors | null {
     const onThemeChanged = (...args: unknown[]) => {
       const event = args[0] as { payload?: string } | undefined
       try {
-        const payload = JSON.parse(event?.payload ?? '{}') as ThemeColors
-        if (
-          payload &&
-          (payload.background != null ||
-            payload.surface != null ||
-            payload.surfaceContainer != null ||
-            payload.onSurface != null)
-        ) {
+        const payload = normalizeThemeColors(JSON.parse(event?.payload ?? '{}') as unknown)
+        if (payload && hasThemePayload(payload)) {
           apply(payload)
           return
         }

@@ -27,6 +27,7 @@ import com.lynx.react.bridge.JavaOnlyMap
 import org.json.JSONObject
 
 class SystemUIModule(context: Context) : LynxModule(context) {
+    private val fallbackContext: Context = context.applicationContext
     private data class ThemeColors(
         val primary: String,
         val primaryDark: String,
@@ -120,10 +121,10 @@ class SystemUIModule(context: Context) : LynxModule(context) {
 
     @LynxMethod
     fun getThemeColors(callback: Callback) {
-        mainHandler.post {
-            val view = hostView
-            if (cachedTheme == null && view != null) {
-                cachedTheme = buildThemeColors(view.context)
+        val run = Runnable {
+            val ctx = hostView?.context ?: fallbackContext
+            if (cachedTheme == null) {
+                cachedTheme = buildThemeColors(ctx)
             }
             val map = cachedTheme?.toMap() ?: JavaOnlyMap()
             try {
@@ -131,6 +132,11 @@ class SystemUIModule(context: Context) : LynxModule(context) {
             } catch (e: Exception) {
                 callback.invoke(JavaOnlyMap())
             }
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            run.run()
+        } else {
+            mainHandler.post(run)
         }
     }
 
