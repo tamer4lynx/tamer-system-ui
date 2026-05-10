@@ -1,5 +1,15 @@
 import { useState, useEffect } from '@lynx-js/react'
 
+export {
+  relativeLuminance,
+  contrastRatio,
+  meetsContrast,
+  pickContrastColor,
+  ensureContrast,
+  type EnsureContrastOptions,
+} from './contrast.js'
+import { ensureContrast, relativeLuminance } from './contrast.js'
+
 export type StatusBarStyle = 'light' | 'dark' | 'auto'
 
 export interface StatusBarOptions {
@@ -102,6 +112,11 @@ export function hasThemePayload(c: ThemeColors | null | undefined): boolean {
 
 /**
  * Coerce a host / `__globalProps` / native callback value into `ThemeColors`.
+ *
+ * Auto-validates each (container, on-container) pair through `ensureContrast`
+ * so consumers can use `theme.onPrimary` etc. directly and get a color that
+ * actually contrasts the matching container — even when the host injects a
+ * theme with poorly-paired tokens.
  */
 export function normalizeThemeColors(raw: unknown): ThemeColors | null {
   if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) return null
@@ -128,7 +143,59 @@ export function normalizeThemeColors(raw: unknown): ThemeColors | null {
     onError: pickStr(o, 'onError'),
     isDark: pickBool(o, 'isDark'),
   }
-  return hasThemePayload(t) ? t : null
+  if (!hasThemePayload(t)) return null
+  return validateContrastPairs(t)
+}
+
+/**
+ * Walk known M3 (container, on-container) pairs and replace each on-color with
+ * one that meets contrast against its container. If both sides exist and already
+ * contrast at the requested ratio, return as-is.
+ *
+ * Bg-only colors (no on-color in `ThemeColors`) get a derived on-color filled in
+ * so consumers can read e.g. `onSurfaceContainer` without doing math.
+ */
+export function validateContrastPairs(theme: ThemeColors): ThemeColors {
+  const out: ThemeColors = { ...theme }
+  // (containerKey, onKey, fallbackOnKey, minRatio)
+  // minRatio 4.5 = WCAG AA body text. Drop to 3 for non-text containers (e.g. inverseSurface).
+  // M3: `onSurface` is the shared on-color for the whole surface tonal family
+  // (`surface`, `surfaceContainer*`, `background`). Validating once against
+  // `surface` is enough because the tonal shifts within the family are small.
+  const pairs: Array<[keyof ThemeColors, keyof ThemeColors, keyof ThemeColors | null, number]> = [
+    ['primary', 'onPrimary', null, 4.5],
+    ['primaryContainer', 'onPrimaryContainer', 'onPrimary', 4.5],
+    ['secondaryContainer', 'onSecondaryContainer', 'onSurface', 4.5],
+    ['surface', 'onSurface', null, 4.5],
+    ['error', 'onError', null, 4.5],
+  ]
+  for (const [bgKey, onKey, fallbackKey, minRatio] of pairs) {
+    const bg = (out as Record<string, unknown>)[bgKey as string]
+    if (typeof bg !== 'string' || !bg) continue
+    const preferred =
+      (typeof (out as Record<string, unknown>)[onKey as string] === 'string'
+        ? ((out as Record<string, unknown>)[onKey as string] as string)
+        : null) ??
+      (fallbackKey != null && typeof (out as Record<string, unknown>)[fallbackKey as string] === 'string'
+        ? ((out as Record<string, unknown>)[fallbackKey as string] as string)
+        : null) ??
+      '#000'
+    const corrected = ensureContrast(preferred, bg, {
+      darkFallback: '#000',
+      lightFallback: '#fff',
+      minRatio,
+    })
+    ;(out as Record<string, unknown>)[onKey as string] = corrected
+  }
+  // onSurfaceVariant: lower contrast (3:1) for secondary text — still validate.
+  if (typeof out.surface === 'string' && typeof out.onSurfaceVariant === 'string') {
+    out.onSurfaceVariant = ensureContrast(out.onSurfaceVariant, out.surface, {
+      darkFallback: '#3a3940',
+      lightFallback: '#dcd9e0',
+      minRatio: 3,
+    })
+  }
+  return out
 }
 
 /**
@@ -173,19 +240,10 @@ export function readInitialThemeColors(): ThemeColors | null {
 
 /**
  * Returns 'light' (white icons) for dark backgrounds, 'dark' (dark icons) for light backgrounds.
- * Uses WCAG relative luminance with the 0.179 threshold.
+ * Uses WCAG relative luminance with the 0.179 threshold (matches Material 3 surface tone split).
  */
 function contrastStyle(hex: string): 'light' | 'dark' {
-  const c = hex.replace(/^#/, '')
-  const full = c.length === 3
-    ? c.split('').map(x => x + x).join('')
-    : c.slice(0, 6)
-  const r = parseInt(full.slice(0, 2), 16) / 255
-  const g = parseInt(full.slice(2, 4), 16) / 255
-  const b = parseInt(full.slice(4, 6), 16) / 255
-  const linearize = (v: number) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
-  const L = 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b)
-  return L > 0.179 ? 'dark' : 'light'
+  return relativeLuminance(hex) > 0.179 ? 'dark' : 'light'
 }
 
 function resolveStyle(color: string | undefined, override: StatusBarStyle | undefined): 'light' | 'dark' {
